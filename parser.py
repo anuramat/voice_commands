@@ -8,7 +8,7 @@ def parse(text, cmd_dict = None):
     # NOTE в этих командах не должно быть чисел в начале, иначе проблемы
     
     cmd_dict = {
-            'едь вперед': {'id': 100, 'spdL': 100, 'spdR': 100, 'delay': 1000},
+            'едь вперёд': {'id': 100, 'spdL': 100, 'spdR': 100, 'delay': 1000},
             'едь назад': {'id': 100, 'spdL': -100, 'spdR': -100, 'delay': 1000},
             'поверни налево': {'id': 100, 'spdL': -100, 'spdR': 100, 'delay': 1000},
             'поверни направо': {'id': 100, 'spdL': 100, 'spdR': -100, 'delay': 1000},
@@ -27,20 +27,20 @@ def parse(text, cmd_dict = None):
     reading_cmd = False
     pos_names = []
     
-    for word_idx in range(len(words)):
+    for word in words:
 
         # команды задержки
-        if not reading_cmd and words[word_idx] in numbers:
+        if not reading_cmd and word in numbers:
             if len(result) == 0:
                 reading_number = False
                 number_splitstring = []
                 raise ValueError('некуда добавлять задержку')
 
             reading_number = True
-            number_splitstring.append(words[word_idx])
+            number_splitstring.append(word)
             continue
 
-        if reading_number and words[word_idx] == 'секунд':
+        if reading_number and word == 'секунд':
             number = read_number(number_splitstring)
             result[-1]['delay'] = number # TODO 
             reading_number = False
@@ -52,8 +52,8 @@ def parse(text, cmd_dict = None):
             pos_names = list(name.split() for name in cmd_dict.keys())
             pos_cmds = list(cmd_dict.values())
             reading_cmd = True
-        
-        pos_names, pos_cmds = zip(*((name, cmd) for name, cmd in zip(pos_names, pos_cmds) if words[word_idx]==name[0]))
+
+        pos_names, pos_cmds = zip(*((name, cmd) for name, cmd in zip(pos_names, pos_cmds) if word==name[0]))
         
         for name in pos_names:
             del name[0]
@@ -75,7 +75,7 @@ def read_number(words):
     return (1 + numbers.index(words[0])) * 1000 # ms
 
 if __name__ == '__main__':
-    test = 'едь вперед выключи свет поверни налево шесть секунд едь назад пять секунд'
+    test = 'едь вперёд выключи свет поверни налево шесть секунд едь назад пять секунд'
     print(f'<<< {test}')
     print()
     print(f'>>> {parse(test)}')

@@ -1,21 +1,14 @@
 #!/usr/bin/env python3
 
-import argparse
 import os
 import queue
 import sounddevice as sd
 import vosk
 import sys
 import json
+from parser import parse
 
 q = queue.Queue()
-
-def int_or_str(text):
-    """Helper function for argument parsing."""
-    try:
-        return int(text)
-    except ValueError:
-        return text
 
 def callback(indata, frames, time, status):
     """This is called (from a separate thread) for each audio block."""
@@ -23,78 +16,55 @@ def callback(indata, frames, time, status):
         print(status, file=sys.stderr)
     q.put(bytes(indata))
 
-parser = argparse.ArgumentParser(add_help=False)
-parser.add_argument(
-    '-l', '--list-devices', action='store_true',
-    help='show list of audio devices and exit')
-args, remaining = parser.parse_known_args()
-if args.list_devices:
-    print(sd.query_devices())
-    parser.exit(0)
-parser = argparse.ArgumentParser(
-    description=__doc__,
-    formatter_class=argparse.RawDescriptionHelpFormatter,
-    parents=[parser])
-parser.add_argument(
-    '-f', '--filename', type=str, metavar='FILENAME',
-    help='audio file to store recording to')
-parser.add_argument(
-    '-m', '--model', type=str, metavar='MODEL_PATH',
-    help='Path to the model')
-parser.add_argument(
-    '-d', '--device', type=int_or_str,
-    help='input device (numeric ID or substring)')
-parser.add_argument(
-    '-r', '--samplerate', type=int, help='sampling rate')
-args = parser.parse_args(remaining)
+def listen(return_callback = None, filename = None, samplerate = None, model = None, device = None):
+    # str filename : file for the audio recording
+    # str model : path to the model
+    # int/str device : input device (numeric ID or substring)
+    # int samplerate
 
-try:
-    if args.model is None:
-        args.model = "model"
-    if not os.path.exists(args.model):
+    if not return_callback:
+        return_callback = print
+    if model is None:
+        model = "model"
+    if not os.path.exists(model):
         print ("Please download a model for your language from https://alphacephei.com/vosk/models")
         print ("and unpack as 'model' in the current folder.")
-        parser.exit(0)
-    if args.samplerate is None:
-        device_info = sd.query_devices(args.device, 'input')
+        return
+    if samplerate is None:
+        device_info = sd.query_devices(device, 'input')
         # soundfile expects an int, sounddevice provides a float:
-        args.samplerate = int(device_info['default_samplerate'])
+        samplerate = int(device_info['default_samplerate'])
 
-    model = vosk.Model(args.model)
+    model = vosk.Model(model)
 
-    if args.filename:
-        dump_fn = open(args.filename, "wb")
+    if filename:
+        dump_fn = open(filename, "wb")
     else:
         dump_fn = None
-
-    with sd.RawInputStream(samplerate=args.samplerate, blocksize = 8000, device=args.device, dtype='int16',
+    
+    with sd.RawInputStream(samplerate=samplerate, blocksize=8000, device=device, dtype='int16',
                             channels=1, callback=callback):
-            print('#' * 80)
-            print('Press Ctrl+C to stop the recording')
-            print('#' * 80)
-            
+
             words = "едь вперёд назад поверни направо налево стоп один два три четыре пять шесть семь восемь девять десять секунд секунды до препятствия включи выключи свет проиграй мелодию подожди нажатие кнопки кто такой ваня"
             words = words.split(' ')
-            rec = vosk.KaldiRecognizer(model, args.samplerate, f'["{" ".join(words)}", "[unk]"]')
+            rec = vosk.KaldiRecognizer(model, samplerate, f'["{" ".join(words)}", "[unk]"]')
             print('loaded')
             while True:
                 data = q.get()
                 if rec.AcceptWaveform(data):
                     text = json.loads(rec.Result())['text']
-                    print(text)
-                    if text == "кто такой ваня":
-                        os.system('aplay /home/pi/vanya.wav')
-                        for i in range(100):
-                            print('VANYA PIDORAS I HUESOS')
-
+                    if text:
+                        cmds = parse(text)
+                        return_callback(cmds)
                 else:
                     pass
                     #print(rec.PartialResult())
                 if dump_fn is not None:
                     dump_fn.write(data)
 
-except KeyboardInterrupt:
-    print('\nDone')
-    parser.exit(0)
-except Exception as e:
-    parser.exit(type(e).__name__ + ': ' + str(e))
+if __name__ == '__main__':
+    try:
+        print(sd.query_devices()) # list the devices together with their ID's
+        listen()
+    except KeyboardInterrupt:
+        print('done')
