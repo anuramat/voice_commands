@@ -7,6 +7,8 @@ import vosk
 import sys
 import json
 from parser import parse
+from time import time
+import re
 
 q = queue.Queue()
 
@@ -16,14 +18,12 @@ def callback(indata, frames, time, status):
         print(status, file=sys.stderr)
     q.put(bytes(indata))
 
-def listen(return_callback = None, filename = None, samplerate = None, model = None, device = None):
+def listen(name_to_cmd, activator, timeout, deactivator, return_callback, filename = None, samplerate = None, model = None, device = None, verbose = False):
     # str filename : file for the audio recording
     # str model : path to the model
     # int/str device : input device (numeric ID or substring)
     # int samplerate
 
-    if not return_callback:
-        return_callback = print
     if model is None:
         model = "model"
     if not os.path.exists(model):
@@ -35,6 +35,13 @@ def listen(return_callback = None, filename = None, samplerate = None, model = N
         # soundfile expects an int, sounddevice provides a float:
         samplerate = int(device_info['default_samplerate'])
 
+    # TODO update numbers_dict when parser is updated
+    numbers_dict = set('одна две три четыре пять шесть семь восемь девять десять'.split())
+    cmd_dict = set()
+    for name in name_to_cmd:
+        cmd_dict = cmd_dict.union(set(name.split()))
+    lang_dict = numbers_dict.union(cmd_dict).union([activator, deactivator])
+
     model = vosk.Model(model)
 
     if filename:
@@ -45,26 +52,66 @@ def listen(return_callback = None, filename = None, samplerate = None, model = N
     with sd.RawInputStream(samplerate=samplerate, blocksize=8000, device=device, dtype='int16',
                             channels=1, callback=callback):
 
-            words = "едь вперёд назад поверни направо налево стоп один два три четыре пять шесть семь восемь девять десять секунд секунды до препятствия включи выключи свет проиграй мелодию подожди нажатие кнопки кто такой ваня"
-            words = words.split(' ')
-            rec = vosk.KaldiRecognizer(model, samplerate, f'["{" ".join(words)}", "[unk]"]')
-            print('loaded')
-            while True:
-                data = q.get()
-                if rec.AcceptWaveform(data):
-                    text = json.loads(rec.Result())['text']
-                    if text:
-                        cmds = parse(text)
+        rec = vosk.KaldiRecognizer(model, samplerate, f'["{" ".join(lang_dict)}", "[unk]"]')
+        print('Listener started')
+        words = ''
+        activated = False
+        activator_regexp = re.compile(activator + r'\b')
+        deactivator_regexp = re.compile(deactivator + r'\b')
+        while True:
+            data = q.get()
+            if rec.AcceptWaveform(data):
+                text = json.loads(rec.Result())['text']
+                if text:
+                    if not activated:
+                        activator_match = activator_regexp.search()
+                        if activator_match:
+                            words += text[activator_match.end()+1:]
+                            activated = True
+                        
+                    if activated:
+                        deactivator_match = deactivator_regexp.search()
+                        if deactivator_match:
+                            words += ' ' + text[:activator_match.start()]
+                            activated = False
+                            cmds = parse(words, name_to_cmd)
+                            return_callback(cmds)
+                            words = ''
+                        else:
+                            words += text
+
+                    last_time = time()
+
+                elif activated:
+                    if current_time - last_time > timeout:
+                        print('Deactivated automatically due to timeout')
+                        activated = False
+                        cmds = parse(words, name_to_cmd)
                         return_callback(cmds)
-                else:
-                    pass
-                    #print(rec.PartialResult())
-                if dump_fn is not None:
-                    dump_fn.write(data)
+                        words = ''
+            
+            else:
+                pass
+                # print(rec.PartialResult())
+                # might be useful for the stop command
+            if dump_fn is not None:
+                dump_fn.write(data)
 
 if __name__ == '__main__':
+    name_to_cmd = {
+            'едь вперёд': {'id': 100, 'spdL': 100, 'spdR': 100, 'delay': 1000},
+            'едь назад': {'id': 100, 'spdL': -100, 'spdR': -100, 'delay': 1000},
+            'поверни налево': {'id': 100, 'spdL': -100, 'spdR': 100, 'delay': 1000},
+            'поверни направо': {'id': 100, 'spdL': 100, 'spdR': -100, 'delay': 1000},
+            'включи свет': {'id': 401, 'switch': True},
+            'выключи свет': {'id': 401, 'switch': False},
+            }
+    # TODO нормальные команды
+    activator = 'слышь'
+    deactivator = 'ёпта'
+    timeout = 3
     try:
         print(sd.query_devices()) # list the devices together with their ID's
-        listen()
+        listen(name_to_cmd, activator, timeout, deactivator, print)
     except KeyboardInterrupt:
         print('done')

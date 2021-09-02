@@ -2,22 +2,13 @@ import json
 import re
 import copy
 
-def parse(text, cmd_dict = None):
+def parse(text, name_to_cmd):
     # TODO обсудить обработку ошибок
     # TODO сделать вариант для чисел больше 10 и дробей в read_number()
     # NOTE в этих командах не должно быть чисел в начале, иначе проблемы
+
+    numbers_dict = set('одна две три четыре пять шесть семь восемь девять десять'.split())
     
-    cmd_dict = {
-            'едь вперёд': {'id': 100, 'spdL': 100, 'spdR': 100, 'delay': 1000},
-            'едь назад': {'id': 100, 'spdL': -100, 'spdR': -100, 'delay': 1000},
-            'поверни налево': {'id': 100, 'spdL': -100, 'spdR': 100, 'delay': 1000},
-            'поверни направо': {'id': 100, 'spdL': 100, 'spdR': -100, 'delay': 1000},
-            'включи свет': {'id': 401, 'switch': True},
-            'выключи свет': {'id': 401, 'switch': False},
-            }
-
-    numbers = 'одна две три четыре пять шесть семь восемь девять десять'.split()
-
     words = text.split() # разбитый на слова вход
     result = [] # список json-ов с командами, который возвращается в конце функции
     
@@ -30,7 +21,7 @@ def parse(text, cmd_dict = None):
     for word in words:
 
         # команды задержки
-        if not reading_cmd and word in numbers:
+        if not reading_cmd and word in numbers_dict:
             if len(result) == 0:
                 reading_number = False
                 number_splitstring = []
@@ -49,8 +40,8 @@ def parse(text, cmd_dict = None):
         
         # обычные команды
         if not pos_names:
-            pos_names = list(name.split() for name in cmd_dict.keys())
-            pos_cmds = list(cmd_dict.values())
+            pos_names = list(name.split() for name in name_to_cmd.keys())
+            pos_cmds = list(name_to_cmd.values())
             reading_cmd = True
 
         pos_names, pos_cmds = zip(*((name, cmd) for name, cmd in zip(pos_names, pos_cmds) if word==name[0]))
@@ -71,8 +62,8 @@ def parse(text, cmd_dict = None):
     return result
 
 def read_number(words):
-    numbers = 'одна две три четыре пять шесть семь восемь девять десять'.split()
-    return (1 + numbers.index(words[0])) * 1000 # ms
+    numbers_dict = 'одна две три четыре пять шесть семь восемь девять десять'.split()
+    return (1 + numbers_dict.index(words[0])) * 1000 # ms
 
 if __name__ == '__main__':
     test = 'едь вперёд выключи свет поверни налево шесть секунд едь назад пять секунд'
