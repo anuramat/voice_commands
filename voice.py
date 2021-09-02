@@ -63,27 +63,30 @@ def listen(name_to_cmd, activator, timeout, deactivator, return_callback, filena
             if rec.AcceptWaveform(data):
                 text = json.loads(rec.Result())['text']
                 if text:
+                    print(f'>>> "{text}"')
+                    last_time = time()
                     if not activated:
-                        activator_match = activator_regexp.search()
+                        activator_match = activator_regexp.search(text)
                         if activator_match:
-                            words += text[activator_match.end()+1:]
+                            print('Activated')
+                            text = text[activator_match.end()+1:]
                             activated = True
                         
                     if activated:
-                        deactivator_match = deactivator_regexp.search()
+                        deactivator_match = deactivator_regexp.search(text)
                         if deactivator_match:
-                            words += ' ' + text[:activator_match.start()]
+                            print('Deactivated manually')
+                            words += ' ' + text[:deactivator_match.start()]
                             activated = False
                             cmds = parse(words, name_to_cmd)
                             return_callback(cmds)
                             words = ''
                         else:
-                            words += text
+                            words += ' ' + text
 
-                    last_time = time()
 
                 elif activated:
-                    if current_time - last_time > timeout:
+                    if time() - last_time > timeout:
                         print('Deactivated automatically due to timeout')
                         activated = False
                         cmds = parse(words, name_to_cmd)
@@ -107,8 +110,8 @@ if __name__ == '__main__':
             'выключи свет': {'id': 401, 'switch': False},
             }
     # TODO нормальные команды
-    activator = 'слышь'
-    deactivator = 'ёпта'
+    activator = 'робот'
+    deactivator = 'поехали'
     timeout = 3
     try:
         print(sd.query_devices()) # list the devices together with their ID's
