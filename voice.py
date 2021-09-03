@@ -6,7 +6,9 @@ import sounddevice as sd
 import vosk
 import sys
 import json
-from parser import parse
+
+import arduino_controller
+from voice_parser import parse
 
 q = queue.Queue()
 
@@ -65,6 +67,6 @@ def listen(return_callback = None, filename = None, samplerate = None, model = N
 if __name__ == '__main__':
     try:
         print(sd.query_devices()) # list the devices together with their ID's
-        listen()
+        listen(arduino_controller.parse_list_jsons)
     except KeyboardInterrupt:
         print('done')
