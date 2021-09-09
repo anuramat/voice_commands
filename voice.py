@@ -67,6 +67,6 @@ def listen(return_callback = None, filename = None, samplerate = None, model = N
 if __name__ == '__main__':
     try:
         print(sd.query_devices()) # list the devices together with their ID's
-        listen(arduino_controller.parse_list_jsons)
+        listen(arduino_controller.controller)
     except KeyboardInterrupt:
         print('done')

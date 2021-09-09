@@ -65,7 +65,8 @@ def parse(text, cmd_dict=None):
             raise ValueError('команда не найдена')
 
         if len(pos_names) == 1 and len(pos_names[0]) == 0:
-            result.append(pos_cmds[0])
+            msg = json.dumps(pos_cmds[0])
+            result.append(msg)
             pos_names = []
             reading_cmd = False
 

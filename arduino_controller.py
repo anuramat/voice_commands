@@ -27,7 +27,6 @@ def parse_id(data):
     """
     dat = json.loads(data)
     id = dat['body']['id']  # достаем из json id
-
     id = f'[{id}]'
     return id
 
@@ -36,23 +35,22 @@ def parse_json(json = None):
         return None
     data = json.loads(json)
     body = data['body']['data']
-    # result = str()
-    # for item in body:
-    #     result += str(item) + " "
     body = str(body).replace('\'', '')  # убираем кавычки из json схемы
     return body
 
 def parse_list_jsons(jsons = None):
+    """
+    Перегоняем json в массив из строк
+    Ожидаемый вход пример: {'id': 100, 'spdL': 100, 'spdR': 100, 'delay': 1000}
+    """
     if jsons == None:
         return None
-    data = json.loads(json)
-    body = data['body']['data']
-    # result = str()
-    # for item in body:
-    #     result += str(item) + " "
-    body = str(body).replace('\'', '')  # убираем кавычки из json схемы
-    # print(body)
-    return body
+    ardumsg = []
+    for i in jsons:
+        gson = json.loads(i)
+        str(gson).replace('\'', '') # убираем кавычки из json
+        ardumsg.append(gson)
+    return ardumsg
 
 
 def writeByte(data):
@@ -97,3 +95,7 @@ def writeString(data):
     print(msg.__class__)
     for i in msg:
         writeByte(i)
+
+def controller(data):
+    ardumsg = parse_list_jsons(data)
+    writeBlockData(ardumsg)
