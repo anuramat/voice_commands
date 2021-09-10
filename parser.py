@@ -11,6 +11,11 @@ def parse(text, name_to_cmd):
     
     words = text.split() # разбитый на слова вход
     result = [] # список json-ов с командами, который возвращается в конце функции
+
+    if '[unk]' in text:
+        #raise
+        result.append({'error': 'unknown word in the input'})
+        return result
     
     reading_number = False
     number_splitstring = []
@@ -25,7 +30,10 @@ def parse(text, name_to_cmd):
             if len(result) == 0:
                 reading_number = False
                 number_splitstring = []
-                raise ValueError('некуда добавлять задержку')
+                # raise ValueError('некуда добавлять задержку')
+                result.append({'error': 'no commands to add delay to'})
+                return result
+                  
 
             reading_number = True
             number_splitstring.append(word)
@@ -33,7 +41,7 @@ def parse(text, name_to_cmd):
 
         if reading_number and word == 'секунд':
             number = read_number(number_splitstring)
-            result[-1]['delay'] = number # TODO 
+            result[-1]['delay'] = number
             reading_number = False
             number_splitstring = []
             continue
@@ -52,7 +60,9 @@ def parse(text, name_to_cmd):
         if len(pos_names) == 0:
             pos_names = []
             reading_cmd = False
-            raise ValueError('команда не найдена')
+            #raise ValueError('команда не найдена')
+            result.append({'error': 'no command found'})
+            return
 
         if len(pos_names) == 1 and len(pos_names[0]) == 0:
             result.append(pos_cmds[0])
