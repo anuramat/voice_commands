@@ -8,7 +8,7 @@ import sys
 import json
 from time import time
 import re
-#import arduino_controller
+import arduino_controller
 from voice_parser import parse
 
 q = queue.Queue()
