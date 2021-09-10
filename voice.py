@@ -6,9 +6,10 @@ import sounddevice as sd
 import vosk
 import sys
 import json
-from parser import parse
 from time import time
 import re
+import arduino_controller
+from voice_parser import parse
 
 q = queue.Queue()
 
@@ -115,6 +116,7 @@ if __name__ == '__main__':
     timeout = 3
     try:
         print(sd.query_devices()) # list the devices together with their ID's
-        listen(name_to_cmd, activator, timeout, deactivator, print)
+        listen(name_to_cmd, activator, timeout, deactivator, arduino_controller.controller)
+        listen(arduino_controller.controller)
     except KeyboardInterrupt:
         print('done')

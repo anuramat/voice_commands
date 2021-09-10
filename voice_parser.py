@@ -22,7 +22,7 @@ def parse(text, name_to_cmd):
 
     reading_cmd = False
     pos_names = []
-    
+
     for word in words:
 
         # команды задержки
@@ -45,15 +45,15 @@ def parse(text, name_to_cmd):
             reading_number = False
             number_splitstring = []
             continue
-        
+
         # обычные команды
         if not pos_names:
             pos_names = list(name.split() for name in name_to_cmd.keys())
             pos_cmds = list(name_to_cmd.values())
             reading_cmd = True
 
-        pos_names, pos_cmds = zip(*((name, cmd) for name, cmd in zip(pos_names, pos_cmds) if word==name[0]))
-        
+        pos_names, pos_cmds = zip(*((name, cmd) for name, cmd in zip(pos_names, pos_cmds) if word == name[0]))
+
         for name in pos_names:
             del name[0]
 
@@ -65,11 +65,13 @@ def parse(text, name_to_cmd):
             return
 
         if len(pos_names) == 1 and len(pos_names[0]) == 0:
-            result.append(pos_cmds[0])
+            msg = json.dumps(pos_cmds[0])
+            result.append(msg)
             pos_names = []
             reading_cmd = False
 
     return result
+
 
 def read_number(words):
     numbers_dict = 'одна две три четыре пять шесть семь восемь девять десять'.split()
