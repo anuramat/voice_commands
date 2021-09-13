@@ -76,7 +76,7 @@ def writeBlockData(data):
 
 def strToCode(data):
     """
-    метод принемает строку и возвращает массив символов представленных как коды из ASCII
+    метод принимает строку и возвращает массив символов представленных как коды из ASCII
     """
     data = [ord(i) for i in list(data)]
     return data
@@ -97,5 +97,8 @@ def writeString(data):
         writeByte(i)
 
 def controller(data):
-    ardumsg = parse_list_jsons(data)
-    writeBlockData(ardumsg)
+    for i in data:
+        gson = json.loads(i)
+        msg = strToCode(str(gson['id']) + str(gson['body']))
+        writeBlockData(msg)
+        print(msg)
